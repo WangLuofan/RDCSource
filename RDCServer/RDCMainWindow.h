@@ -7,6 +7,9 @@ namespace Ui {
 class RDCMainWindow;
 }
 
+class QThread;
+class RDCServer;
+class QStandardItemModel;
 class RDCMainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -16,7 +19,18 @@ public:
     ~RDCMainWindow();
 
 private:
+    void setupTableView(void);
+    void closeEvent(QCloseEvent*);
+
+private slots:
+    void on_actionPreferences_triggered();
+    void startServer(void);
+
+private:
     Ui::RDCMainWindow *ui;
+    QStandardItemModel* m_pStandardItemModel;
+    RDCServer* m_pServer;
+    QThread* m_pServerThread;
 };
 
 #endif // RDCMAINWINDOW_H

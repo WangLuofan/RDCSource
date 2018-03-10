@@ -25,10 +25,41 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        RDCMainWindow.cpp
+        RDCMainWindow.cpp \
+    RDCPreferencesDialog.cpp \
+    RDCTcpSocket.cpp \
+    RDCClientInfo.cpp \
+    RDCClientInfoList.cpp \
+    RDCServer.cpp \
+    RDCUtils.cpp \
+    RDCMessage.cpp \
+    RDCMessagePool.cpp \
+    RDCConfiguration.cpp \
+    RDCHostInfo.cpp
 
 HEADERS += \
-        RDCMainWindow.h
+        RDCMainWindow.h \
+    RDCPreferencesDialog.h \
+    RDCTcpSocket.h \
+    RDCClientInfo.h \
+    RDCClientInfoList.h \
+    RDCServer.h \
+    RDCUtils.h \
+    RDCMessage.h \
+    RDCServiceCommand.h \
+    RDCMessagePool.h \
+    RDCConfiguration.h \
+    RDCTcpSocketEventHandler.h \
+    RDCHostInfo.h
 
 FORMS += \
-        RDCMainWindow.ui
+        RDCMainWindow.ui \
+    RDCPreferencesDialog.ui
+
+INCLUDEPATH += \
+              /usr/local/include
+
+LIBS += -lz \
+        -L /usr/local/lib/libevent.a    \
+        -L /usr/local/lib/libevent_pthreads.a   \
+        -L /usr/local/lib/libevent_core.a
