@@ -1,6 +1,7 @@
 #include "RDCHostInfo.h"
 #include "RDCMessage.h"
 #include "RDCTcpSocket.h"
+#include "RDCMessagePool.h"
 #include "RDCTcpSocketEventHandler.h"
 
 #include <strings.h>
@@ -132,7 +133,7 @@ void RDCTcpSocket::setBufferEvent(struct bufferevent* evt)
     return ;
 }
 
-void RDCTcpSocket::sendMessage(const RDCMessage* msg) const
+void RDCTcpSocket::sendMessage(RDCMessage* msg)
 {
     struct evbuffer* output = bufferevent_get_output(this->getBufferEvent());
     evbuffer_add(output, msg->data(), msg->size());
@@ -143,7 +144,10 @@ void accept_call_back(struct evconnlistener* listener,
                       evutil_socket_t socket, struct sockaddr* addr, int socklen, void* ctx)
 {
     RDCTcpSocket* listenSocket = (RDCTcpSocket*)ctx;
+
     RDCTcpSocket* newSocket = new RDCTcpSocket(socket);
+    newSocket->setEventHandler(listenSocket->getEventHandler());
+
     RDCHostInfo hostInfo(addr);
 
     struct bufferevent* bvt = bufferevent_socket_new((struct event_base*)listenSocket->getEventBase(), socket,
@@ -170,10 +174,14 @@ void read_call_back(struct bufferevent* bev, void* ctx)
     memset(buffer, 0, sizeof(unsigned char) * buflen);
 
     evbuffer_remove(input, buffer, buflen);
+
+    std::shared_ptr<RDCMessage> msg = RDCMessagePool::pool()->newMessage();
+    msg.get()->appendData(buffer, buflen);
+
     free(buffer);
 
     if(socket->getEventHandler() != nullptr)
-        socket->getEventHandler()->onMessageReceived(socket, nullptr);
+        socket->getEventHandler()->onMessageReceived(socket, msg.get());
 
     return ;
 }

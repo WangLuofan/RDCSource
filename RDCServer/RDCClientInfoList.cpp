@@ -17,6 +17,14 @@ RDCClientInfoList *RDCClientInfoList::sharedInstance()
     return RDCClientInfoList::m_StaticObject;
 }
 
+void RDCClientInfoList::addClientInfo(RDCClientInfo* clientInfo)
+{
+    LOCK({
+             this->m_pClientInfoList.push_back(clientInfo);
+         });
+    return ;
+}
+
 RDCClientInfo *RDCClientInfoList::getClientInfo(const RDCTcpSocket* socket)
 {
     RDCClientInfo* clientInfo = nullptr;
@@ -41,6 +49,24 @@ RDCClientInfo *RDCClientInfoList::getClientInfo(const int idx)
                 break ;
 
              clientInfo = this->m_pClientInfoList.at(idx);
+         });
+    return clientInfo;
+}
+
+RDCClientInfo *RDCClientInfoList::getClientInfo(const bool bFirst)
+{
+    RDCClientInfo* clientInfo = nullptr;
+    LOCK({
+             if(bFirst)
+             {
+                 if(this->m_pClientInfoList.size() > 0)
+                    clientInfo = this->m_pClientInfoList.at(0);
+             }
+             else
+             {
+                 if(this->m_pClientInfoList.size() > 0)
+                    clientInfo = this->m_pClientInfoList.at(this->m_pClientInfoList.size() - 1);
+             }
          });
     return clientInfo;
 }

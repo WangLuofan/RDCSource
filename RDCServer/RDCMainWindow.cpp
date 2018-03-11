@@ -2,6 +2,8 @@
 #include "RDCMainWindow.h"
 #include "RDCPreferencesDialog.h"
 #include "ui_RDCMainWindow.h"
+#include "RDCClientInfo.h"
+#include "RDCClientInfoList.h"
 
 #include <QTimer>
 #include <QThread>
@@ -62,12 +64,19 @@ void RDCMainWindow::on_actionPreferences_triggered()
     return ;
 }
 
+void RDCMainWindow::clientConnectedSignalHandler(void)
+{
+
+    return ;
+}
+
 void RDCMainWindow::startServer(void)
 {
     //启动服务器
     this->m_pServer = new RDCServer();
     this->m_pServerThread = new QThread(this);
 
+    QObject::connect(this->m_pServer, SIGNAL(client_connected_signal()), this, SLOT(clientConnectedSignalHandler()));
     QObject::connect(this->m_pServerThread, SIGNAL(started()), this->m_pServer, SLOT(Start()));
 
     this->m_pServer->moveToThread(this->m_pServerThread);

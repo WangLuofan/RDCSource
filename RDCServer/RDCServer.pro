@@ -31,7 +31,6 @@ SOURCES += \
     RDCClientInfo.cpp \
     RDCClientInfoList.cpp \
     RDCServer.cpp \
-    RDCUtils.cpp \
     RDCMessage.cpp \
     RDCMessagePool.cpp \
     RDCConfiguration.cpp \
@@ -44,7 +43,6 @@ HEADERS += \
     RDCClientInfo.h \
     RDCClientInfoList.h \
     RDCServer.h \
-    RDCUtils.h \
     RDCMessage.h \
     RDCServiceCommand.h \
     RDCMessagePool.h \

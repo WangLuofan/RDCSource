@@ -17,11 +17,14 @@ public:
 
 public:
     virtual void onErrorOccured(RDCTcpSocket*, const char*);
-    virtual void onClientConnected(RDCTcpSocket*, const RDCHostInfo*);
+    virtual void onClientConnected(RDCTcpSocket*, RDCHostInfo*);
     virtual void onConnectedToServer(RDCTcpSocket*);
     virtual void onClientDisconnected(RDCTcpSocket*);
     virtual void onTimeOutEventOccured(RDCTcpSocket*);
-    virtual void onMessageReceived(RDCTcpSocket*, const RDCMessage*);
+    virtual void onMessageReceived(RDCTcpSocket*, RDCMessage *);
+
+signals:
+    void client_connected_signal(void);
 
 public slots:
     void Start(void);

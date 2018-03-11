@@ -25,6 +25,7 @@ private:
 private slots:
     void on_actionPreferences_triggered();
     void startServer(void);
+    void clientConnectedSignalHandler(void);
 
 private:
     Ui::RDCMainWindow *ui;

@@ -15,6 +15,7 @@ public:
     void addClientInfo(RDCClientInfo*);
     RDCClientInfo* getClientInfo(const RDCTcpSocket*);
     RDCClientInfo* getClientInfo(const int);
+    RDCClientInfo* getClientInfo(const bool);
 
     void removeClientInfo(const RDCClientInfo*);
     void removeClientInfo(const int);

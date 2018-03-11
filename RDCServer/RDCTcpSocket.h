@@ -31,7 +31,7 @@ public:
     struct bufferevent* getBufferEvent(void) const;
     void setBufferEvent(struct bufferevent *);
 
-    void sendMessage(const RDCMessage*) const;
+    void sendMessage(RDCMessage *);
 private:
     int m_FileDescriptor;
     struct evconnlistener* m_pConnListener;

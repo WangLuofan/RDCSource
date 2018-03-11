@@ -167,7 +167,7 @@ void RDCMessage::appendString(QString& data)
     return this->appendData((const unsigned char*)data.toLatin1().data(), data.length());
 }
 
-void RDCMessage::mergeMessage(const RDCMessage * msg)
+void RDCMessage::mergeMessage(RDCMessage * msg)
 {
     this->strechToFit(msg->size());     //调整空间
     //添加数据
@@ -248,24 +248,19 @@ int RDCMessage::current(void)
     return this->m_pCurrent;
 }
 
-const unsigned char* RDCMessage::data(void) const
+const unsigned char* RDCMessage::data(void)
 {
     return this->m_pData;
 }
 
-unsigned char* RDCMessage::data(void)
-{
-    return this->m_pData;
-}
-
-const size_t RDCMessage::size(void) const
+size_t RDCMessage::size(void)
 {
     return this->m_iLength;
 }
 
 ServiceCommand RDCMessage::serviceCommand(void)
 {
-    return (ServiceCommand)this->nextInteger();
+    return (const ServiceCommand)this->nextInteger();
 }
 
 unsigned char RDCMessage::nextChar(void)

@@ -14,11 +14,10 @@ private:
 public:
     ~RDCMessage();
 
-    const size_t size(void) const;
+    size_t size(void);
     void reset(void);
 
-    const unsigned char* data(void) const;
-    unsigned char* data(void);
+    const unsigned char* data(void);
     int current(void);
 
     void realloc(void);
@@ -37,7 +36,7 @@ public:
     void appendData(const unsigned char*, int);
     void appendString(QString&);
 
-    void mergeMessage(const RDCMessage*);
+    void mergeMessage(RDCMessage *);
 
     void replaceChar(unsigned char, int);
     void replaceShort(unsigned short, int);
