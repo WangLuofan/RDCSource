@@ -3,7 +3,15 @@
 #include "RDCHostInfo.h"
 #include "RDCClientInfo.h"
 
-RDCClientInfo::RDCClientInfo()
+#define LOCK_BEGIN(m) m.lock();
+#define LOCK_END(m) m.unlock()
+#define LOCK(code) LOCK_BEGIN(m_pMutex) \
+    do { \
+        code \
+    }while(0); \
+    LOCK_END(this->m_pMutex)
+
+RDCClientInfo::RDCClientInfo() : m_pPeerInfo(nullptr)
 {
 
 }
@@ -14,90 +22,143 @@ RDCClientInfo::~RDCClientInfo()
     delete this->m_pSocket;
 }
 
-RDCClientInfo *RDCClientInfo::getPeerInfo(void) const
+RDCClientInfo *RDCClientInfo::getPeerInfo(void)
 {
-    return this->m_pPeerInfo;
+    RDCClientInfo* clientInfo = nullptr;
+    LOCK({
+             clientInfo = this->m_pPeerInfo;
+         });
+    return clientInfo;
 }
 
 void RDCClientInfo::setPeerInfo(RDCClientInfo *pPeerInfo)
 {
-    this->m_pPeerInfo = pPeerInfo;
+    LOCK({
+            this->m_pPeerInfo = pPeerInfo;
+         });
     return ;
 }
 
-RDCTcpSocket *RDCClientInfo::getSocket(void) const
+RDCTcpSocket *RDCClientInfo::getSocket(void)
 {
     return this->m_pSocket;
 }
 
 void RDCClientInfo::setSocket(RDCTcpSocket *pSocket)
 {
-    this->m_pSocket = pSocket;
+    LOCK({
+            this->m_pSocket = pSocket;
+         });
     return ;
 }
 
-RDCHostInfo *RDCClientInfo::getHostInfo(void) const
+RDCHostInfo *RDCClientInfo::getHostInfo(void)
 {
     return this->m_pHostInfo;
 }
 
-void RDCClientInfo::setHostInfo(const RDCHostInfo *pHostInfo)
+void RDCClientInfo::setHostInfo(const QString ipAddr, const unsigned short port, const QString hostName)
 {
-    this->m_pHostInfo = new RDCHostInfo(*pHostInfo);
+    LOCK({
+            this->m_pHostInfo = new RDCHostInfo(ipAddr, port, hostName);
+         });
     return ;
 }
 
-const char *RDCClientInfo::getToken() const
+const QString RDCClientInfo::getToken(void) const
 {
     return this->m_pToken;
 }
 
-void RDCClientInfo::setToken(const char* token)
+void RDCClientInfo::setToken(const QString token)
 {
-    memcpy(this->m_pToken, token, strlen(token));
+    LOCK({
+            this->m_pToken = token;
+         });
     return ;
 }
 
-const char *RDCClientInfo::getPassword() const
+const QString RDCClientInfo::getPassword() const
 {
     return this->m_pPassword;
 }
 
-void RDCClientInfo::setPassword(const char* password)
+void RDCClientInfo::setPassword(const QString password)
 {
-    memcpy(this->m_pPassword, password, strlen(password));
+    LOCK({
+            this->m_pPassword = password;
+         });
     return ;
 }
 
-const char *RDCClientInfo::getSystemVersion() const
+const QString RDCClientInfo::getSystemVersion() const
 {
     return this->m_pSystemVersion;
 }
 
-void RDCClientInfo::setSystemVersion(const char* version)
+void RDCClientInfo::setSystemVersion(const QString version)
 {
-    memcpy(this->m_pSystemVersion, version, strlen(version));
+    LOCK({
+            this->m_pSystemVersion = version;
+         });
     return ;
 }
 
-const char *RDCClientInfo::getOnlineTimeStamp() const
+const QString RDCClientInfo::getOnlineTimeStamp() const
 {
     return this->m_pOnlineTimeStamp;
 }
 
-void RDCClientInfo::setOnlineTimeStamp(const char* timestamp)
+void RDCClientInfo::setOnlineTimeStamp(const QString timestamp)
 {
-    memcpy(this->m_pOnlineTimeStamp, timestamp, strlen(timestamp));
+    LOCK({
+            this->m_pOnlineTimeStamp = timestamp;
+         });
     return ;
 }
 
-const char *RDCClientInfo::getCurrentStatus() const
+const QString RDCClientInfo::getCurrentStatusDesc(void) const
 {
-    return this->m_pCurrentStatus;
+    return this->m_pCurrentStatusDesc;
 }
 
-void RDCClientInfo::setCurrentStatus(const char* status)
+void RDCClientInfo::setCurrentStatus(ClientStatus status)
 {
-    memcpy(this->m_pCurrentStatus, status, strlen(status));
+    LOCK({
+             this->m_pCurrentStatus = status;
+             this->m_pCurrentStatusDesc = this->statusDescription(status);
+         });
     return ;
+}
+
+void RDCClientInfo::setCurrentRowIndex(const int index)
+{
+    LOCK({
+            this->m_iCurrentRowIndex = index;
+         });
+    return ;
+}
+
+int RDCClientInfo::getCurrentRowIndex(void) const
+{
+    return this->m_iCurrentRowIndex;
+}
+
+QString RDCClientInfo::statusDescription(RDCClientInfo::ClientStatus status)
+{
+    QString desc;
+
+    switch(status)
+    {
+        case  ClientStatusOnline:
+           desc = QString("在线");
+           break;
+        case ClientStatusOffline:
+           desc = QString("离线");
+           break;
+        default:
+           desc = QString("未知状态");
+           break;
+    }
+    return desc;
 }

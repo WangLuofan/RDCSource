@@ -34,7 +34,8 @@ SOURCES += \
     RDCMessage.cpp \
     RDCMessagePool.cpp \
     RDCConfiguration.cpp \
-    RDCHostInfo.cpp
+    RDCHostInfo.cpp \
+    RDCClientEventHandler.cpp
 
 HEADERS += \
         RDCMainWindow.h \
@@ -48,7 +49,8 @@ HEADERS += \
     RDCMessagePool.h \
     RDCConfiguration.h \
     RDCTcpSocketEventHandler.h \
-    RDCHostInfo.h
+    RDCHostInfo.h \
+    RDCClientEventHandler.h
 
 FORMS += \
         RDCMainWindow.ui \

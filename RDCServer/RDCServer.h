@@ -9,13 +9,14 @@ class RDCMessage;
 class RDCHostInfo;
 class RDCTcpSocket;
 
-class RDCServer : public QObject, public RDCTcpSocketEventHandler
+class RDCServer : public QObject, private RDCTcpSocketEventHandler
 {
     Q_OBJECT
 public:
     explicit RDCServer(QObject *parent = nullptr);
+    ~RDCServer();
 
-public:
+private:
     virtual void onErrorOccured(RDCTcpSocket*, const char*);
     virtual void onClientConnected(RDCTcpSocket*, RDCHostInfo*);
     virtual void onConnectedToServer(RDCTcpSocket*);
@@ -25,6 +26,7 @@ public:
 
 signals:
     void client_connected_signal(void);
+    void client_disconnected_signal(int);
 
 public slots:
     void Start(void);

@@ -1,7 +1,6 @@
 #include <string.h>
 #include "RDCHostInfo.h"
 
-#include <netinet/in.h>
 #include <arpa/inet.h>
 
 RDCHostInfo::RDCHostInfo() :
@@ -62,4 +61,17 @@ void RDCHostInfo::setHostName(QString hostName)
 {
     this->m_pHostName = hostName;
     return ;
+}
+
+const sockaddr_in RDCHostInfo::toNative(void) const
+{
+    struct sockaddr_in addr;
+    bzero(&addr, sizeof(struct sockaddr_in));
+
+    addr.sin_family = AF_INET;
+    addr.sin_len = sizeof(struct sockaddr_in);
+    addr.sin_port = htons(this->m_usPort);
+    addr.sin_addr.s_addr = inet_addr(this->m_pIPAddress.toLatin1().constData());
+
+    return addr;
 }

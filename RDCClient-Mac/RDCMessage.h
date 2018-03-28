@@ -2,7 +2,6 @@
 #define RDCMESSAGE_H
 
 #include "RDCServiceCommand.h"
-
 #include <QString>
 
 class RDCMessage

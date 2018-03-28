@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -25,10 +25,58 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        RDCMainWindow.cpp
+        RDCMainWindow.cpp \
+    RDCClient.cpp \
+    RDCConfiguration.cpp \
+    RDCMessage.cpp \
+    RDCMessagePool.cpp \
+    RDCPreferencesDialog.cpp \
+    RDCTcpSocket.cpp \
+    RDCHostInfo.cpp \
+    RDCUtils.cpp \
+    RDCPasswordVerifyDialog.cpp \
+    RDCUdpSocket.cpp \
+    RDCScreenWindow.cpp \
+    RDCScreenMsgReceivedThread.cpp \
+    RDCMessageQueue.cpp \
+    RDCScreenDataSendThread.cpp
 
 HEADERS += \
-        RDCMainWindow.h
+        RDCMainWindow.h \
+    RDCClient.h \
+    RDCClient.h \
+    RDCConfiguration.h \
+    RDCServiceCommand.h \
+    RDCMessage.h \
+    RDCMessagePool.h \
+    RDCPreferencesDialog.h \
+    RDCTcpSocket.h \
+    RDCTcpSocketEventHandler.h \
+    RDCHostInfo.h \
+    RDCUtils.h \
+    RDCPasswordVerifyDialog.h \
+    RDCUdpSocket.h \
+    RDCUdpSocketEventHandler.h \
+    RDCScreenWindow.h \
+    RDCScreenMsgReceivedThread.h \
+    RDCMessageQueue.h \
+    RDCScreenDataSendThread.h
+
 
 FORMS += \
-        RDCMainWindow.ui
+        RDCMainWindow.ui \
+    RDCPreferencesDialog.ui \
+    RDCPasswordVerifyDialog.ui \
+    RDCScreenWindow.ui
+
+FORMS += \
+        RDCMainWindow.ui \
+    RDCPreferencesDialog.ui
+
+INCLUDEPATH += \
+              /usr/local/include
+
+LIBS += -lz \
+        -L /usr/local/lib/libevent.a    \
+        -L /usr/local/lib/libevent_pthreads.a   \
+        -L /usr/local/lib/libevent_core.a

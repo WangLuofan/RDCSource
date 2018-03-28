@@ -1,6 +1,8 @@
 #include "RDCClientInfo.h"
 #include "RDCClientInfoList.h"
 
+#include <QString>
+
 #define LOCK_BEGIN(m) m.lock();
 #define LOCK_END(m) m.unlock()
 #define LOCK(code) LOCK_BEGIN(m_pMutex) \
@@ -49,6 +51,26 @@ RDCClientInfo *RDCClientInfoList::getClientInfo(const int idx)
                 break ;
 
              clientInfo = this->m_pClientInfoList.at(idx);
+         });
+    return clientInfo;
+}
+
+RDCClientInfo *RDCClientInfoList::getClientInfo(const char* token)
+{
+    RDCClientInfo* clientInfo = nullptr;
+    LOCK({
+             QString tokenStr = QString(token);
+             if(tokenStr.length() > 0)
+             {
+                 for(auto info : this->m_pClientInfoList)
+                 {
+                     if(info->getToken().compare(tokenStr) == 0)
+                     {
+                         clientInfo = info;
+                         break;
+                     }
+                 }
+             }
          });
     return clientInfo;
 }

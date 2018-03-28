@@ -10,6 +10,7 @@ class RDCMainWindow;
 class QThread;
 class RDCServer;
 class QStandardItemModel;
+
 class RDCMainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -25,7 +26,8 @@ private:
 private slots:
     void on_actionPreferences_triggered();
     void startServer(void);
-    void clientConnectedSignalHandler(void);
+    void clientConnectedSlot(void);
+    void clientDisconnectedSlot(int);
 
 private:
     Ui::RDCMainWindow *ui;

@@ -2,8 +2,8 @@
 #define RDCHOSTINFO_H
 
 #include <QString>
+#include <netinet/in.h>
 
-struct sockaddr;
 class RDCHostInfo
 {
 public:
@@ -20,6 +20,8 @@ public:
 
     const QString getHostName(void) const;
     void setHostName(QString);
+
+    const struct sockaddr_in toNative(void) const;
 private:
     QString m_pIPAddress;
     unsigned short m_usPort;

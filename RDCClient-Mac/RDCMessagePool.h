@@ -4,6 +4,7 @@
 #include <vector>
 #include <mutex>
 #include <memory>
+#include <RDCMessage.h>
 
 typedef std::shared_ptr<RDCMessage> MESSAGE_PTR;
 

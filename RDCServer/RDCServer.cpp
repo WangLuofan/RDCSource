@@ -1,24 +1,31 @@
 #include "RDCServer.h"
 #include "RDCMessage.h"
-#include "RDCHostInfo.h"
 #include "RDCTcpSocket.h"
+#include "RDCHostInfo.h"
 #include "RDCClientInfo.h"
 #include "RDCClientInfoList.h"
 #include "RDCConfiguration.h"
+#include "RDCClientEventHandler.h"
 
-#include <QtGlobal>
-#include <QString>
-#include <QTimer>
-#include <QTime>
+typedef void(*MESSAGE_HANDLER)(RDCTcpSocket*, RDCMessage*);
 
-RDCServer::RDCServer(QObject *parent) : QObject(parent), m_pServerSocket(new RDCTcpSocket())
+RDCServer::RDCServer(QObject *parent) : QObject(parent), m_pServerSocket(nullptr)
 {
 
 }
 
+RDCServer::~RDCServer()
+{
+    delete this->m_pServerSocket;
+}
+
 void RDCServer::Start(void)
 {
-    this->m_pServerSocket->setEventHandler(this);
+    if(this->m_pServerSocket == nullptr)
+    {
+        this->m_pServerSocket = new RDCTcpSocket();
+        this->m_pServerSocket->setEventHandler(this);
+    }
     unsigned short port = RDCConfiguration::standardConfiguration()->valueForKey("ListenPort").toInt();
     this->m_pServerSocket->ListenAtPort(port);
 
@@ -27,6 +34,11 @@ void RDCServer::Start(void)
 
 void RDCServer::Stop(void)
 {
+    if(this->m_pServerSocket != nullptr)
+    {
+        this->m_pServerSocket->Close();
+        this->m_pServerSocket->ExitEventLoop();
+    }
     return ;
 }
 
@@ -40,7 +52,7 @@ void RDCServer::onClientConnected(RDCTcpSocket* socket, RDCHostInfo *host)
     RDCClientInfo* cliInfo = new RDCClientInfo();
 
     cliInfo->setSocket(socket);
-    cliInfo->setHostInfo(host);
+    cliInfo->setHostInfo(host->getIPAddress(), host->getPort(), host->getHostName());
 
     RDCClientInfoList::sharedInstance()->addClientInfo(cliInfo);
 
@@ -58,7 +70,10 @@ void RDCServer::onClientDisconnected(RDCTcpSocket* socket)
 
     if(cliInfo != nullptr)
     {
+        const int rowIndex = cliInfo->getCurrentRowIndex();
         RDCClientInfoList::sharedInstance()->removeClientInfo(cliInfo);
+
+        emit this->client_disconnected_signal(rowIndex);
     }
 
     return ;
@@ -71,40 +86,40 @@ void RDCServer::onTimeOutEventOccured(RDCTcpSocket *)
 
 void RDCServer::onMessageReceived(RDCTcpSocket* socket, RDCMessage* msg)
 {
+    MESSAGE_HANDLER handler = nullptr;
+
     const ServiceCommand serviceCommand = msg->serviceCommand();
     switch(serviceCommand)
     {
         case ServiceCommandSYN:
-        {
-            //客户端发送上线信息, 从其中取出客户端主机名及系统版本信息
-            int hostLen = msg->nextChar();
-            const char* hostname = msg->nextData(hostLen);
-
-            int sysLen = msg->nextChar();
-            const char* sysver = msg->nextData(sysLen);
-
-            //生成Token及Password
-            qsrand(QTime().secsTo(QTime::currentTime()));
-            int token = qrand() % 1000000;
-            int password = qrand() % 100000000;
-
-            QString tokenStr = QString("%1").arg(token, 6, QChar('0'));
-            QString passwordStr = QString("%1").arg(password, 8, QChar('0'));
-
-            RDCClientInfo* cliInfo = RDCClientInfoList::sharedInstance()->getClientInfo(socket);
-            if(cliInfo != nullptr)
-            {
-                cliInfo->getHostInfo()->setHostName(hostname);
-                cliInfo->setSystemVersion(sysver);
-                cliInfo->setToken(tokenStr.toLatin1().constData());
-                cliInfo->setPassword(passwordStr.toLatin1().constData());
-
-                QString timestamp = QTime::currentTime().toString("YYYY-MM-dd HH:mm:ss");
-                cliInfo->setOnlineTimeStamp(timestamp.toLatin1().constData());
-                cliInfo->setCurrentStatus("在线");
-            }
-        }
+            handler = onClientConnectedMessageReceived;
+            break;
+        case ServiceCommandConnectionQuery:
+            handler = onConnectionQueryMessageReceived;
+            break;
+        case ServiceCommandConnectionDenied:
+            handler = onConnectionDeniedMessageReceived;
+            break;
+        case ServiceCommandVerifyRequest:
+            handler = onPasswordVerifyMessageReceived;
+            break;
+        case ServiceCommandVerifyFailed:
+        case ServiceCommandVerifyComplete:
+            handler = onPasswordVerifyResultMessageReceived;
+            break;
+        case ServiceCommandConnectionReady:
+            handler = onConnectionReadyMessageReceived;
+            break;
+        default:
             break;
     }
+
+    if(handler != nullptr)
+    {
+        handler(socket, msg);
+        if(serviceCommand == ServiceCommandSYN)
+            emit this->client_connected_signal();
+    }
+
     return ;
 }

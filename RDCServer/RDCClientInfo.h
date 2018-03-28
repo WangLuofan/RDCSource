@@ -1,50 +1,66 @@
 #ifndef RDCCLIENTINFO_H
 #define RDCCLIENTINFO_H
 
+#include <QString>
+#include <QMutex>
+
 class RDCHostInfo;
 class RDCTcpSocket;
 
 class RDCClientInfo
 {
 public:
+    typedef enum {
+        ClientStatusOnline,
+        ClientStatusOffline
+    }ClientStatus;
+
     RDCClientInfo();
     ~RDCClientInfo();
 
-    RDCClientInfo *getPeerInfo(void) const;
+    RDCClientInfo *getPeerInfo(void);
     void setPeerInfo(RDCClientInfo*);
 
-    RDCTcpSocket *getSocket(void) const;
+    RDCTcpSocket *getSocket(void);
     void setSocket(RDCTcpSocket*);
 
-    RDCHostInfo *getHostInfo(void) const;
-    void setHostInfo(const RDCHostInfo*);
+    RDCHostInfo *getHostInfo(void);
+    void setHostInfo(const QString, const unsigned short, const QString = nullptr);
 
-    const char *getToken(void) const;
-    void setToken(const char*);
+    const QString getToken(void) const;
+    void setToken(const QString);
 
-    const char* getPassword(void) const;
-    void setPassword(const char*);
+    const QString getPassword(void) const;
+    void setPassword(const QString);
 
-    const char* getSystemVersion(void) const;
-    void setSystemVersion(const char*);
+    const QString getSystemVersion(void) const;
+    void setSystemVersion(const QString);
 
-    const char* getOnlineTimeStamp(void) const;
-    void setOnlineTimeStamp(const char*);
+    const QString getOnlineTimeStamp(void) const;
+    void setOnlineTimeStamp(const QString);
 
-    const char* getCurrentStatus(void) const;
-    void setCurrentStatus(const char*);
+    const QString getCurrentStatusDesc(void) const;
+    void setCurrentStatus(ClientStatus);
+
+    void setCurrentRowIndex(const int);
+    int getCurrentRowIndex(void) const;
+
 private:
-#define CLI_DATA_LEN 12
-#define SYS_VERS_LEN 128
+    QString statusDescription(ClientStatus);
+
+private:
+    int m_iCurrentRowIndex;
+    QMutex m_pMutex;
 
     RDCClientInfo* m_pPeerInfo;
     RDCTcpSocket* m_pSocket;
     RDCHostInfo* m_pHostInfo;
-    char m_pToken[CLI_DATA_LEN];
-    char m_pPassword[CLI_DATA_LEN];
-    char m_pSystemVersion[SYS_VERS_LEN];
-    char m_pOnlineTimeStamp[SYS_VERS_LEN];
-    char m_pCurrentStatus[SYS_VERS_LEN];
+    QString m_pToken;
+    QString m_pPassword;
+    QString m_pSystemVersion;
+    QString m_pOnlineTimeStamp;
+    QString m_pCurrentStatusDesc;
+    ClientStatus m_pCurrentStatus;
 };
 
 #endif // RDCCLIENTINFO_H
