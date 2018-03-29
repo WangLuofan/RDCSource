@@ -1,18 +1,17 @@
 #include "RDCUdpSocket.h"
 #include "RDCMessage.h"
-#include "RDCMessagePool.h"
-#include "RDCMessageQueue.h"
 #include "RDCScreenDataSendThread.h"
 
 #include <QSemaphore>
 
 RDCScreenDataSendThread::RDCScreenDataSendThread(QObject* parent, QSemaphore* sem,
-                                                 RDCMessageQueue* msgQueue, RDCUdpSocket* socket) :
+                                                 RDCMessageQueue<MESSAGE_PTR>* msgQueue,
+                                                 RDCUdpSocket* socket) :
     QThread(parent), m_pSemaphore(sem), m_bShouldThreadExit(false), m_pMsgQueue(msgQueue), m_pSocket(socket)
 {
 }
 
-void RDCScreenDataSendThread::run()
+void RDCScreenDataSendThread::run(void)
 {
     while(!m_bShouldThreadExit)
     {

@@ -2,12 +2,14 @@
 #define RDCSCREENWINDOW_H
 
 #include <QSize>
+#include <QImage>
 #include <QMainWindow>
 
 namespace Ui {
 class RDCScreenWindow;
 }
 
+class QPaintEvent;
 class RDCScreenWindow : public QMainWindow
 {
     Q_OBJECT
@@ -16,12 +18,14 @@ public:
     explicit RDCScreenWindow(QWidget *parent = 0);
     ~RDCScreenWindow();
 
-private slots:
-    void onClientResolutionSlots(QSize);
+    void updateScreenImage(QImage);
+
+private:
+    void paintEvent(QPaintEvent*);
 
 private:
     Ui::RDCScreenWindow *ui;
-    unsigned char* m_pImageBuffer;
+    QImage m_pScreenImage;
 };
 
 #endif // RDCSCREENWINDOW_H

@@ -14,9 +14,9 @@ typedef enum
     ServiceCommandVerifyRequest = 'SCVR',            //被控端要求密码验证
     ServiceCommandVerifyComplete = 'SCVC',           //主控端验证通过
     ServiceCommandVerifyFailed = 'SCVF',             //主控端验证失败
-    ServiceCommandConnectionReady = 'SCRY',          //被控端已准备好连接
-    ServiceCommandResolutionRequest = 'RREQ',        //请求桌面分辨率
-    ServiceCommandResolutionResponse = 'RRES',       //回应桌面分辨率
+    ServiceCommandConnectionRequest = 'SCRY',        //被控端发起连接请求
+    ServiceCommandConnectionReady = 'SCDY',          //主控端已建立连接，等待被控端连接
+    ServiceCommandResolution = 'RREQ',               //请求桌面分辨率
     ServiceCommandScreenFirstFrame = 'SFRM',         //主控端请求屏幕第一帧
     ServiceCommandScreenData = 'SCSD',               //被控端发送的屏幕数据
     ServiceCommandScreenDataNone = 'SCSN',           //无屏幕差异数据

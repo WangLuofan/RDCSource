@@ -1,17 +1,19 @@
 #ifndef RDCSCREENDATASENDTHREAD_H
 #define RDCSCREENDATASENDTHREAD_H
 
+#include "RDCMessagePool.h"
+#include "RDCMessageQueue.h"
+
 #include <QThread>
 
 class QSemaphore;
-class RDCMessageQueue;
 class RDCUdpSocket;
 class RDCScreenDataSendThread : public QThread
 {
     Q_OBJECT
 public:
     explicit RDCScreenDataSendThread(QObject* = nullptr, QSemaphore* = nullptr,
-                                     RDCMessageQueue* = nullptr, RDCUdpSocket* = nullptr);
+                                     RDCMessageQueue<MESSAGE_PTR>* = nullptr, RDCUdpSocket* = nullptr);
 
 private:
     void run(void);
@@ -19,7 +21,7 @@ private:
 private:
     QSemaphore* m_pSemaphore;
     bool m_bShouldThreadExit;
-    RDCMessageQueue* m_pMsgQueue;
+    RDCMessageQueue<MESSAGE_PTR>* m_pMsgQueue;
     RDCUdpSocket* m_pSocket;
 };
 

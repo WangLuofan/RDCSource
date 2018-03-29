@@ -3,6 +3,7 @@
 
 #include <QTimer>
 #include <QSize>
+#include <QImage>
 #include <QMainWindow>
 
 namespace Ui {
@@ -23,11 +24,12 @@ public:
 
 private slots:
     void startConnection(void);
+    void onClientShouldUpdateScreenImage(QImage);
     void onClientInfoUpdated(QString, QString);
     void onClientShowMessage(int, QString);
     void onClientVerifyPasswordSlots(QString);
     void onClientConnectionReadySlots(QString);
-    void onClientResolutionSlots(QSize);
+    void onClientStartScreenDataTimer(void);
     void on_doConnectionButton_clicked(void);
     void on_doDisconnectionButton_clicked(void);
     void on_otherTokenLineEdit_textChanged(const QString &);

@@ -3,21 +3,77 @@
 
 #include <vector>
 #include <QMutex>
-#include <RDCMessagePool.h>
 
+#define LOCK_BEGIN(m) m.lock();
+#define LOCK_END(m) m.unlock()
+#define LOCK(code) LOCK_BEGIN(m_pMutex) \
+    do { \
+        code \
+    }while(0); \
+    LOCK_END(this->m_pMutex)
+
+
+template<typename T>
 class RDCMessageQueue
 {
 public:
-    RDCMessageQueue();
+    RDCMessageQueue() {}
 
-    bool empty(void);
-    int size(void);
-    void push_back(MESSAGE_PTR);
-    MESSAGE_PTR pop_front(void);
-    void clear(void);
+    bool empty(void)
+    {
+        bool isEmpty = true;
+        LOCK({
+                 isEmpty = this->m_MessageVector.empty();
+             });
+        return isEmpty;
+    }
+
+    int size(void)
+    {
+        int len = 0;
+        LOCK({
+                 len = this->m_MessageVector.size();
+             });
+        return len;
+    }
+
+    void push_back(T obj)
+    {
+        LOCK({
+                 if(obj != nullptr)
+                 {
+                     this->m_MessageVector.push_back(obj);
+                 }
+             });
+        return ;
+    }
+
+    T pop_front(void)
+    {
+        T obj = nullptr;
+        LOCK({
+                 if(this->m_MessageVector.empty() == false)
+                 {
+                     obj = this->m_MessageVector.front();
+                     this->m_MessageVector.erase(this->m_MessageVector.begin());
+                 }
+             });
+        return obj;
+    }
+
+    void clear(void)
+    {
+        LOCK({
+                 while(this->m_MessageVector.empty() == false)
+                 {
+                     this->m_MessageVector.pop_back();
+                 }
+             });
+        return ;
+    }
 
 private:
-    std::vector<MESSAGE_PTR> m_MessageVector;
+    std::vector<T> m_MessageVector;
     QMutex m_pMutex;
 };
 

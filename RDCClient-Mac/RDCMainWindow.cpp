@@ -95,11 +95,20 @@ void RDCMainWindow::startConnection(void)
     QObject::connect(this->m_pClient, SIGNAL(client_connection_ready_signal(QString)),
                      this, SLOT(onClientConnectionReadySlots(QString)));
     QObject::connect(this->m_pClientThread, SIGNAL(started()), this->m_pClient, SLOT(Start()));
-    QObject::connect(this->m_pClient, SIGNAL(client_resolution_response_signal(QSize)),
-                     this, SLOT(onClientResolutionSlots(QSize)));
+    QObject::connect(this->m_pClient, SIGNAL(client_screen_data_send_begin_signal()),
+                     this, SLOT(onClientStartScreenDataTimer()));
+    QObject::connect(this->m_pClient, SIGNAL(client_should_update_screen_image(QImage)),
+                     this, SLOT(onClientShouldUpdateScreenImage(QImage)));
 
     this->m_pClient->moveToThread(this->m_pClientThread);
     this->m_pClientThread->start();
+    return ;
+}
+
+void RDCMainWindow::onClientShouldUpdateScreenImage(QImage image)
+{
+    if(this->m_pScreenWindow != nullptr)
+        this->m_pScreenWindow->updateScreenImage(image);
     return ;
 }
 
@@ -160,28 +169,24 @@ void RDCMainWindow::onClientConnectionReadySlots(QString title)
         //最小化当前窗口
         if(this->isMinimized() == false)
             this->showMinimized();
+
         //显示当前图像窗口
         this->m_pScreenWindow->setWindowTitle(QString("%1 [已连接]").arg(title));
         this->m_pScreenWindow->showNormal();
-
-        QObject::disconnect(this->m_pClient, SIGNAL(client_resolution_response_signal(QSize)),
-                            this, SLOT(onClientResolutionSlots(QSize)));
-        QObject::connect(this->m_pClient, SIGNAL(client_resolution_response_signal(QSize)),
-                         this->m_pScreenWindow, SLOT(onClientResolutionSlots(QSize)));
     }
     return ;
 }
 
-void RDCMainWindow::onClientResolutionSlots(QSize)
+void RDCMainWindow::onClientStartScreenDataTimer(void)
 {
-    //主控端请求分辨率，启动定时器
+    //启动定时器, 准备发送屏幕数据
     if(this->m_pScreenTimer == nullptr)
     {
         this->m_pScreenTimer = new QTimer(this);
 
         QObject::connect(this->m_pScreenTimer, SIGNAL(timeout()),
                          this->m_pClient, SLOT(doScreenGenerate()), Qt::DirectConnection);
-        this->m_pScreenTimer->start(200);
+        this->m_pScreenTimer->start(500);
     }
     return ;
 }

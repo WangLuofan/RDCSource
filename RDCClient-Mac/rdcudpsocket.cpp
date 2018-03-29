@@ -7,10 +7,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #include <QDebug>
 
-#define kMaxBufferSize 4096
+#define kMaxBufferSize 10240
 RDCUdpSocket::RDCUdpSocket()
 {
     this->m_iFileDescriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -72,15 +73,16 @@ bool RDCUdpSocket::connectToHost(const char* ipAddr, unsigned short port)
 
 void RDCUdpSocket::sendMessage(RDCMessage* msg)
 {
-    ssize_t sndLen = send(this->m_iFileDescriptor, msg->data(), msg->size(), 0);
-    int i = 0;
+    ssize_t sndLen = write(this->m_iFileDescriptor, msg->data(), msg->size());
+    if(sndLen == -1)
+        qDebug() << strerror(errno);
     return ;
 }
 
 void RDCUdpSocket::receiveMessage(void)
 {
     unsigned char buff[kMaxBufferSize] = {0};
-    ssize_t recvLen = recv(this->m_iFileDescriptor, buff, kMaxBufferSize, 0);
+    ssize_t recvLen = read(this->m_iFileDescriptor, buff, kMaxBufferSize);
 
     if(recvLen > 0)
     {
@@ -88,7 +90,7 @@ void RDCUdpSocket::receiveMessage(void)
         msg.get()->appendData(buff, recvLen);
 
         if(this->m_pSocketEventHandler != nullptr)
-            this->m_pSocketEventHandler->onScreenDataReceived(this, msg.get());
+            this->m_pSocketEventHandler->onScreenDataReceived(this, msg);
     }
     return ;
 }

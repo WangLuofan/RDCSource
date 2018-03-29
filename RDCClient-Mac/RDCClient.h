@@ -4,15 +4,19 @@
 #include "RDCScreenMsgReceivedThread.h"
 #include "RDCTcpSocketEventHandler.h"
 #include "RDCUdpSocketEventHandler.h"
+#include "RDCMessageQueue.h"
 
 #include <QObject>
 #include <QSize>
+#include <QString>
 #include <QSemaphore>
+#include <QImage>
 
 class RDCTcpSocket;
 class RDCUdpSocket;
-class RDCMessageQueue;
-class RDCClient : public QObject, private RDCTcpSocketEventHandler, private RDCUdpSocketEventHandler
+class RDCUdpSocketEventImpl;
+class RDCScreenDataSendThread;
+class RDCClient : public QObject, private RDCTcpSocketEventHandler
 {
     Q_OBJECT
 public:
@@ -25,7 +29,7 @@ public:
     }MessageLevel;
 
 public:
-    explicit RDCClient(QObject *parent = nullptr);
+    explicit RDCClient(QObject* = nullptr);
     ~RDCClient();
 
 private:
@@ -36,9 +40,6 @@ private:
     virtual void onTimeOutEventOccured(RDCTcpSocket*);
     virtual void onMessageReceived(RDCTcpSocket*, RDCMessage *);
 
-    virtual void onScreenCommandReceived(RDCUdpSocket*, RDCMessage*);
-    virtual void onScreenDataReceived(RDCUdpSocket*, RDCMessage*);
-
     bool buildUdpConnection(bool = true, const char* = nullptr, unsigned short = 0);
 
 signals:
@@ -46,13 +47,15 @@ signals:
     void client_show_message_signal(int, QString);
     void client_verify_password_signal(QString);
     void client_connection_ready_signal(QString);
-    void client_resolution_response_signal(QSize = QSize());
+    void client_screen_data_send_begin_signal(void);
+    void client_should_update_screen_image(QImage);
 
 private slots:
     void doConnectionSlots(QString);
     void doConnectionQuerySlots(bool);
     void doPasswordVerifyResultSlots(bool);
     void doScreenGenerate(void);
+    void doUpdateScreenImageSlots(QImage);
 
 public slots:
     void Start(void);
@@ -61,11 +64,15 @@ public slots:
 private:
     RDCTcpSocket* m_pClientSocket;
     RDCUdpSocket* m_pScreenDataSocket;
-    RDCMessageQueue* m_pMsgQueue;
+    RDCMessageQueue<MESSAGE_PTR>* m_pMsgQueue;
+    RDCMessageQueue<QImage*>* m_pImageQueue;
     RDCScreenMsgReceivedThread* m_pScreenMsgRecvThread;
+    RDCScreenDataSendThread* m_pScreenDataSendThread;
     unsigned char* m_pSendBuffer;
     bool m_bIsGeneratingScreenShot;
-    QSemaphore* m_pSemaphore;
+    QSemaphore* m_pMsgQueueSemaphore;
+    QSemaphore* m_pImageQueueSemaphore;
+    RDCUdpSocketEventImpl* m_pUdpSocketEventImpl;
 };
 
 #endif // RDCCLIENT_H

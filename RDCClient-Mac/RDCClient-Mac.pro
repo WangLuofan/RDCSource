@@ -38,8 +38,9 @@ SOURCES += \
     RDCUdpSocket.cpp \
     RDCScreenWindow.cpp \
     RDCScreenMsgReceivedThread.cpp \
-    RDCMessageQueue.cpp \
-    RDCScreenDataSendThread.cpp
+    RDCScreenDataSendThread.cpp \
+    RDCUdpSocketEventImpl.cpp \
+    RDCImageGettingThread.cpp
 
 HEADERS += \
         RDCMainWindow.h \
@@ -60,7 +61,10 @@ HEADERS += \
     RDCScreenWindow.h \
     RDCScreenMsgReceivedThread.h \
     RDCMessageQueue.h \
-    RDCScreenDataSendThread.h
+    RDCScreenDataSendThread.h \
+    RDCUdpSocketEventImpl.h \
+    rdcudpsocket.h \
+    RDCImageGettingThread.h
 
 
 FORMS += \

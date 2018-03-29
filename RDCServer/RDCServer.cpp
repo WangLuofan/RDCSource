@@ -110,6 +110,15 @@ void RDCServer::onMessageReceived(RDCTcpSocket* socket, RDCMessage* msg)
         case ServiceCommandConnectionReady:
             handler = onConnectionReadyMessageReceived;
             break;
+        case ServiceCommandConnectionRequest:
+        {
+            //被控端发起Udp连接请求，转发给主控端
+            RDCClientInfo* myClientInfo = RDCClientInfoList::sharedInstance()->getClientInfo(socket);
+            msg->appendChar(myClientInfo->getHostInfo()->getIPAddress().length());
+            msg->appendString(myClientInfo->getHostInfo()->getIPAddress());
+            myClientInfo->getPeerInfo()->getSocket()->sendMessage(msg);
+        }
+            break;
         default:
             break;
     }
