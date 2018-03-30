@@ -5,7 +5,7 @@
 #include <QSemaphore>
 
 RDCScreenDataSendThread::RDCScreenDataSendThread(QObject* parent, QSemaphore* sem,
-                                                 RDCMessageQueue<MESSAGE_PTR>* msgQueue,
+                                                 RDCMessageQueue<RDCMessage*>* msgQueue,
                                                  RDCUdpSocket* socket) :
     QThread(parent), m_pSemaphore(sem), m_bShouldThreadExit(false), m_pMsgQueue(msgQueue), m_pSocket(socket)
 {
@@ -19,13 +19,14 @@ void RDCScreenDataSendThread::run(void)
 
         if(this->m_pMsgQueue->empty() == false)
         {
-            MESSAGE_PTR msg = this->m_pMsgQueue->pop_front();
+            RDCMessage* msg = this->m_pMsgQueue->pop_front();
             if(msg != nullptr)
             {
-                this->m_pSocket->sendMessage(msg.get());
+                this->m_pSocket->sendMessage(msg);
+                delete msg;
             }
         }
-        QThread::usleep(40);
+        QThread::msleep(1);
     }
     return ;
 }

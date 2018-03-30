@@ -10,14 +10,17 @@
 #include <QTime>
 #include <QSemaphore>
 
-#define SAFE_DELETE(ptr) if(ptr != nullptr) {free(ptr); ptr = nullptr;}
-
 //收到屏幕指令
 RDCUdpSocketEventImpl::RDCUdpSocketEventImpl(QObject* parent) : QThread(parent),
-    m_pMessageQueue(new RDCMessageQueue<MESSAGE_PTR>()),
+    m_pMessageQueue(new RDCMessageQueue<RDCMessage*>()),
     m_bShouldStopParse(false), m_pCompressedData(nullptr),
-    m_pUnCompressedData(nullptr), m_pPacketsReceived(0), m_pSemaphore(new QSemaphore(1))
+    m_pUnCompressedData(nullptr), m_pPacketsParsed(0), m_pSemaphore(new QSemaphore(1))
 {
+}
+
+RDCUdpSocketEventImpl::~RDCUdpSocketEventImpl()
+{
+    free(this->m_pCompressedData);
 }
 
 void RDCUdpSocketEventImpl::onScreenCommandReceived(RDCUdpSocket *, RDCMessage *)
@@ -26,7 +29,7 @@ void RDCUdpSocketEventImpl::onScreenCommandReceived(RDCUdpSocket *, RDCMessage *
 }
 
 //收到数据指令,放入队列等待解析
-void RDCUdpSocketEventImpl::onScreenDataReceived(RDCUdpSocket*, MESSAGE_PTR message)
+void RDCUdpSocketEventImpl::onScreenDataReceived(RDCUdpSocket*, RDCMessage *message)
 {
     this->m_pSemaphore->acquire();
     this->m_pMessageQueue->push_back(message);
@@ -41,12 +44,13 @@ void RDCUdpSocketEventImpl::run(void)
         this->m_pSemaphore->acquire();
         if(this->m_pMessageQueue->empty() == false)
         {
-            MESSAGE_PTR msg = this->m_pMessageQueue->pop_front();
+            RDCMessage* msg = this->m_pMessageQueue->pop_front();
 
             if(msg != nullptr)
-                this->parseMessage(msg.get());
+                this->parseMessage(msg);
         }
         this->m_pSemaphore->release();
+        QThread::msleep(1);
     }
     return ;
 }
@@ -74,7 +78,7 @@ void RDCUdpSocketEventImpl::parseMessage(RDCMessage *msg)
 {
     //确认是屏幕数据帧
     ServiceCommand cmd = msg->serviceCommand();
-    if(cmd == ServiceCommandResolution)
+    if(cmd == ServiceCommandTellResolution)
     {
         //请求桌面分辨率
         this->m_pResolution = QSize(msg->nextShort(), msg->nextShort());
@@ -96,7 +100,7 @@ void RDCUdpSocketEventImpl::parseMessage(RDCMessage *msg)
             memset(this->m_pCompressedData, 0, sizeof(unsigned char) * com_len);
         }
 
-        ++this->m_pPacketsReceived;
+        ++this->m_pPacketsParsed;
 
         //复制图像数据到对应的位置
         const unsigned char* img_data = msg->data() + msg->current();
@@ -104,7 +108,7 @@ void RDCUdpSocketEventImpl::parseMessage(RDCMessage *msg)
                (index - 1) * img_data_length, img_data, msg->size() - msg->current());
 
         //解析到一个完整的数据包
-        if(this->m_pPacketsReceived == total)
+        if(this->m_pPacketsParsed >= total)
         {
             //解压缩数据
             struct ioVec* vec = RDCUtils::uncompress(this->m_pCompressedData, com_len, ori_len);
@@ -126,22 +130,26 @@ void RDCUdpSocketEventImpl::parseMessage(RDCMessage *msg)
                         (*(this->m_pUnCompressedData->data + i + 2)) ^=
                                 (*(vec->data + (idx++)));
                     }
+                    delete vec;
+                }
+
+                QImage image = QImage(this->m_pUnCompressedData->data,
+                                           this->m_pResolution.width(), this->m_pResolution.height(),
+                                           QImage::Format_ARGB32_Premultiplied);
+                if(image.isNull() == false)
+                {
+                    //通知窗口显示图片
+                    emit screen_image_update_signal(image);
                 }
             }
 
-            QImage image = QImage(this->m_pUnCompressedData->data,
-                                       this->m_pResolution.width(), this->m_pResolution.height(),
-                                       QImage::Format_ARGB32_Premultiplied);
-            if(image.isNull() == false)
-            {
-                //通知窗口显示图片
-                emit screen_image_update_signal(image);
-            }
+            this->m_pPacketsParsed = 0;
 
-            //清理资源, 重新开始解析下一个数据包
-            SAFE_DELETE(this->m_pCompressedData);
-            this->m_pPacketsReceived = 0;
+            free(this->m_pCompressedData);
+            this->m_pCompressedData = nullptr;
         }
     }
+
+    delete msg;
     return ;
 }

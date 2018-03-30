@@ -45,7 +45,7 @@ struct ioVec *RDCUtils::compress(const unsigned char* data, int dataLen)
 
     if(::compress(buff, &bounds, data, dataLen) == Z_OK)
     {
-        struct ioVec* dataVec = (struct ioVec*)malloc(sizeof(struct ioVec));
+        struct ioVec* dataVec = new struct ioVec();
         dataVec->data = buff;
         dataVec->length = bounds;
 
@@ -63,7 +63,7 @@ struct ioVec*RDCUtils::uncompress(const unsigned char* data, int dataLen, int or
 
     if(::uncompress(buff, &oriDataLen, data, dataLen) == Z_OK)
     {
-        struct ioVec* dataVec = (struct ioVec*)malloc(sizeof(struct ioVec));
+        struct ioVec* dataVec = new struct ioVec();
         dataVec->data = buff;
         dataVec->length = oriDataLen;
 

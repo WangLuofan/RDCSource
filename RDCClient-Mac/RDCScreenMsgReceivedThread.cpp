@@ -12,7 +12,10 @@ RDCScreenMsgReceivedThread::RDCScreenMsgReceivedThread(QObject* parent, RDCUdpSo
 void RDCScreenMsgReceivedThread::run()
 {
     while(!this->m_bShouldThreadExit)
+    {
         this->m_pScreenSocket->receiveMessage();
+        QThread::msleep(1);
+    }
     return ;
 }
 

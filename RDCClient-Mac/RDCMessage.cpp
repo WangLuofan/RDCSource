@@ -46,7 +46,7 @@ RDCMessage* RDCMessage::newMessage(size_t size)
 RDCMessage* RDCMessage::newMessage(ServiceCommand cmd)
 {
     RDCMessage* msg = new RDCMessage();
-    msg->appendChar((unsigned char)cmd);
+    msg->appendInteger((unsigned int)cmd);
 
     return msg;
 }
@@ -112,11 +112,17 @@ void RDCMessage::strechToFit(const size_t length)
     if(this->m_iLength + length < this->m_iTotalLength)
         return ;
 
-    this->m_pData = (unsigned char*)::realloc(this->m_pData, this->m_iLength + length + strech_size);
+    unsigned char* tmp_ptr = this->m_pData;
+
+    this->m_pData = (unsigned char*)malloc(this->m_iLength + length + strech_size);
+    memset(this->m_pData, 0, sizeof(unsigned char) * (this->m_iLength + length + strech_size));
+    memcpy(this->m_pData, tmp_ptr, this->m_iLength);
+
     if(this->m_pData != nullptr)
     {
         this->m_iTotalLength = this->m_iLength + length + strech_size;
-        memset(this->m_pData + this->m_iLength, 0, sizeof(length + strech_size));
+
+        SAFE_DELETE(tmp_ptr);
     }
 
     return ;

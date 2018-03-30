@@ -14,6 +14,7 @@
 
 class RDCTcpSocket;
 class RDCUdpSocket;
+class RDCMessage;
 class RDCUdpSocketEventImpl;
 class RDCScreenDataSendThread;
 class RDCClient : public QObject, private RDCTcpSocketEventHandler
@@ -64,7 +65,7 @@ public slots:
 private:
     RDCTcpSocket* m_pClientSocket;
     RDCUdpSocket* m_pScreenDataSocket;
-    RDCMessageQueue<MESSAGE_PTR>* m_pMsgQueue;
+    RDCMessageQueue<RDCMessage*>* m_pMsgQueue;
     RDCMessageQueue<QImage*>* m_pImageQueue;
     RDCScreenMsgReceivedThread* m_pScreenMsgRecvThread;
     RDCScreenDataSendThread* m_pScreenDataSendThread;

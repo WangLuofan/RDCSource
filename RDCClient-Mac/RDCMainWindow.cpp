@@ -1,7 +1,6 @@
 #include "RDCClient.h"
 #include "RDCMainWindow.h"
 #include "ui_RDCMainWindow.h"
-#include "RDCMessagePool.h"
 #include "RDCScreenWindow.h"
 #include "RDCPreferencesDialog.h"
 #include "RDCPasswordVerifyDialog.h"
@@ -25,7 +24,6 @@ RDCMainWindow::~RDCMainWindow()
 {
     delete this->m_pClient;
     delete ui;
-    delete RDCMessagePool::pool();
 }
 
 void RDCMainWindow::on_doConnectionButton_clicked(void)

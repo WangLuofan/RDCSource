@@ -3,19 +3,17 @@
 #include "RDCTcpSocket.h"
 #include "RDCConfiguration.h"
 #include "RDCMessage.h"
-#include "RDCMessagePool.h"
 #include "RDCUtils.h"
 #include "RDCUdpSocket.h"
 #include "RDCMessageQueue.h"
 #include "RDCUdpSocketEventImpl.h"
 #include "RDCScreenDataSendThread.h"
-#include "RDCImageGettingThread.h"
 
 #include <QDebug>
 
 RDCClient::RDCClient(QObject *parent) : QObject(parent), m_pClientSocket(nullptr),
     m_pScreenDataSocket(nullptr), m_pScreenMsgRecvThread(nullptr),
-    m_pSendBuffer(nullptr), m_bIsGeneratingScreenShot(false), m_pMsgQueue(new RDCMessageQueue<MESSAGE_PTR>()),
+    m_pSendBuffer(nullptr), m_bIsGeneratingScreenShot(false), m_pMsgQueue(new RDCMessageQueue<RDCMessage*>()),
     m_pUdpSocketEventImpl(new RDCUdpSocketEventImpl(this)), m_pScreenDataSendThread(nullptr),
     m_pImageQueue(new RDCMessageQueue<QImage*>())
 {
@@ -31,6 +29,7 @@ RDCClient::RDCClient(QObject *parent) : QObject(parent), m_pClientSocket(nullptr
 
 RDCClient::~RDCClient()
 {
+    free(this->m_pSendBuffer);
     delete this->m_pMsgQueueSemaphore;
     delete this->m_pImageQueueSemaphore;
     delete this->m_pUdpSocketEventImpl;
@@ -54,19 +53,19 @@ void RDCClient::onClientConnected(RDCTcpSocket* socket, RDCHostInfo *)
 void RDCClient::onConnectedToServer(RDCTcpSocket* socket)
 {
     //客户端连接到服务器, 发送主机名，系统版本信息
-    MESSAGE_PTR rmsg = RDCMessagePool::pool()->newMessage();
-
-    rmsg.get()->setServiceCommand(ServiceCommandSYN);
+    RDCMessage* rmsg = RDCMessage::newMessage(ServiceCommandSYN);
 
     QString hostName = RDCUtils::hostName();
     QString sysVer = RDCUtils::systemVersion();
 
-    rmsg.get()->appendChar(hostName.length());
-    rmsg.get()->appendString(hostName);
-    rmsg.get()->appendChar(sysVer.length());
-    rmsg.get()->appendString(sysVer);
+    rmsg->appendChar(hostName.length());
+    rmsg->appendString(hostName);
+    rmsg->appendChar(sysVer.length());
+    rmsg->appendString(sysVer);
 
-    socket->sendMessage(rmsg.get());
+    socket->sendMessage(rmsg);
+
+    delete rmsg;
     return ;
 }
 
@@ -147,9 +146,9 @@ void RDCClient::onMessageReceived(RDCTcpSocket* socket, RDCMessage* message)
         case ServiceCommandVerifyComplete:
         {
             //主控端密码验证成功，发起Udp连接请求
-            MESSAGE_PTR rmsg = RDCMessagePool::pool()->newMessage();
-            rmsg.get()->setServiceCommand(ServiceCommandConnectionRequest);
-            socket->sendMessage(rmsg.get());
+            RDCMessage* rmsg = RDCMessage::newMessage(ServiceCommandConnectionRequest);
+            socket->sendMessage(rmsg);
+            delete rmsg;
         }
             break;
         case ServiceCommandConnectionReady:
@@ -171,11 +170,11 @@ void RDCClient::onMessageReceived(RDCTcpSocket* socket, RDCMessage* message)
 
                 //发送桌面分辨率
                 QSize reso = RDCUtils::resolution();
-                MESSAGE_PTR rmsg = RDCMessagePool::pool()->newMessage();
-                rmsg.get()->setServiceCommand(ServiceCommandResolution);
-                rmsg.get()->appendShort(reso.width());
-                rmsg.get()->appendShort(reso.height());
-                this->m_pScreenDataSocket->sendMessage(rmsg.get());
+                RDCMessage* rmsg = RDCMessage::newMessage(ServiceCommandTellResolution);
+                rmsg->appendShort(reso.width());
+                rmsg->appendShort(reso.height());
+                this->m_pScreenDataSocket->sendMessage(rmsg);
+                delete rmsg;
 
                 //启动定时器,发送屏幕数据
                 emit client_screen_data_send_begin_signal();
@@ -210,10 +209,11 @@ void RDCClient::onMessageReceived(RDCTcpSocket* socket, RDCMessage* message)
                 //上传端口号
                 unsigned short port = RDCConfiguration::standardConfiguration()
                         ->valueForKey("LocalPort").toInt(nullptr);
-                MESSAGE_PTR rmsg = RDCMessagePool::pool()->newMessage();
-                rmsg.get()->setServiceCommand(ServiceCommandConnectionReady);
-                rmsg.get()->appendShort(port);
-                socket->sendMessage(rmsg.get());
+                RDCMessage* rmsg = RDCMessage::newMessage(ServiceCommandConnectionReady);
+                rmsg->appendShort(port);
+                socket->sendMessage(rmsg);
+
+                delete rmsg;
             }
         }
             break;
@@ -244,42 +244,44 @@ bool RDCClient::buildUdpConnection(bool bMaster, const char* ipAddr, unsigned sh
 void RDCClient::doConnectionSlots(QString token)
 {
     //主控端发起连接请求
-    MESSAGE_PTR msg = RDCMessagePool::pool()->newMessage();
-    msg.get()->setServiceCommand(ServiceCommandConnectionQuery);
-    msg.get()->appendChar(token.length());
-    msg.get()->appendString(token);
+    RDCMessage* msg = RDCMessage::newMessage(ServiceCommandConnectionQuery);
+    msg->appendChar(token.length());
+    msg->appendString(token);
 
-    this->m_pClientSocket->sendMessage(msg.get());
+    this->m_pClientSocket->sendMessage(msg);
+    delete msg;
     return ;
 }
 
 void RDCClient::doConnectionQuerySlots(bool result)
 {
-    MESSAGE_PTR msg = RDCMessagePool::pool()->newMessage();
+    RDCMessage* msg = RDCMessage::newMessage();
     if(result == true)
     {
         //用户同意建立连接, 查看是否需要密码验证
         bool shouldVerifyPassword = RDCConfiguration::standardConfiguration()
                 ->valueForKey("verifyPassword").toBool();
         //发送密码验证请求
-        msg.get()->setServiceCommand(ServiceCommandVerifyRequest);
-        msg.get()->appendChar(shouldVerifyPassword);
+        msg->setServiceCommand(ServiceCommandVerifyRequest);
+        msg->appendChar(shouldVerifyPassword);
     }
     else
     {
         //用户不同意建立连接
-        msg.get()->setServiceCommand(ServiceCommandConnectionDenied);
+        msg->setServiceCommand(ServiceCommandConnectionDenied);
     }
 
-    this->m_pClientSocket->sendMessage(msg.get());
+    this->m_pClientSocket->sendMessage(msg);
+    delete msg;
     return ;
 }
 
 void RDCClient::doPasswordVerifyResultSlots(bool bSuccess)
 {
-    MESSAGE_PTR msg = RDCMessagePool::pool()->newMessage();
-    msg.get()->setServiceCommand(bSuccess ? ServiceCommandVerifyComplete : ServiceCommandVerifyFailed);
-    this->m_pClientSocket->sendMessage(msg.get());
+    RDCMessage* msg = RDCMessage::newMessage(
+                bSuccess ? ServiceCommandVerifyComplete : ServiceCommandVerifyFailed);
+    this->m_pClientSocket->sendMessage(msg);
+    delete msg;
     return ;
 }
 
@@ -304,7 +306,7 @@ void RDCClient::doPasswordVerifyResultSlots(bool bSuccess)
 //++++++++++++++++++++++++++++++++++
 
 // header_size = 32 + 16 + 16 + 32 + 32 = 16 bytes
-void RDCClient::doScreenGenerate()
+void RDCClient::doScreenGenerate(void)
 {
     if(this->m_bIsGeneratingScreenShot == true)
         return ;
@@ -325,36 +327,35 @@ void RDCClient::doScreenGenerate()
         {
             //分包发送
             int bytes_per_time = 5104, bytes_need_to_send = vec->length, bytes_already_sended = 0,
-                    packet_count = (int)(vec->length / bytes_per_time) + 1, packet_index = 0;
+                    packet_count = (int)(vec->length / bytes_per_time) + 1, packet_index = 1;
             while(bytes_need_to_send > 0)
             {
                 //写入命令字
-                MESSAGE_PTR msg = RDCMessagePool::pool()->newMessage();
-                msg.get()->setServiceCommand(ServiceCommandScreenData);
+                RDCMessage* msg = RDCMessage::newMessage(ServiceCommandScreenData);
 
                 //写入是否第一帧
-                msg.get()->appendChar(1);
+                msg->appendChar(1);
 
                 //写入包索引
-                msg.get()->appendChar(++packet_index);
+                msg->appendChar(packet_index++);
 
                 //写入包总数
-                msg.get()->appendChar(packet_count);
+                msg->appendChar(packet_count);
 
                 //写入保留位
-                msg.get()->appendChar(0);
+                msg->appendChar(0);
 
                 //写入总数据长度
-                msg.get()->appendInteger(snapShot.sizeInBytes());
+                msg->appendInteger(snapShot.sizeInBytes());
 
                 //写入压缩数据长度
-                 msg.get()->appendInteger(vec->length);
+                 msg->appendInteger(vec->length);
 
                 //写入包数据长度
                 if(bytes_need_to_send > bytes_per_time)
                 {
                     //写入数据
-                    msg.get()->appendData(vec->data + bytes_already_sended, bytes_per_time);
+                    msg->appendData(vec->data + bytes_already_sended, bytes_per_time);
 
                     //调整相关值
                     bytes_need_to_send -= bytes_per_time;
@@ -363,7 +364,7 @@ void RDCClient::doScreenGenerate()
                 else
                 {
                     //写入数据
-                    msg.get()->appendData(vec->data + bytes_already_sended, bytes_need_to_send);
+                    msg->appendData(vec->data + bytes_already_sended, bytes_need_to_send);
 
                     //调整相关值
                     bytes_need_to_send = 0;
@@ -374,8 +375,7 @@ void RDCClient::doScreenGenerate()
                 this->m_pMsgQueueSemaphore->release();
             }
 
-            free(vec);
-            vec = nullptr;
+            delete vec;
         }
     }
     else
@@ -401,41 +401,41 @@ void RDCClient::doScreenGenerate()
         }
 
         struct ioVec* vec = RDCUtils::compress(diff, diffLen);
+        free(diff);
 
         if(vec != nullptr)
         {
             //分包发送
             int bytes_per_time = 5104, bytes_need_to_send = vec->length, bytes_already_sended = 0,
-                    packet_count = (int)(vec->length / bytes_per_time) + 1, packet_index = 0;
+                    packet_count = (int)(vec->length / bytes_per_time) + 1, packet_index = 1;
             while(bytes_need_to_send > 0)
             {
                 //写入命令字
-                MESSAGE_PTR msg = RDCMessagePool::pool()->newMessage();
-                msg.get()->setServiceCommand(ServiceCommandScreenData);
+                RDCMessage* msg = RDCMessage::newMessage(ServiceCommandScreenData);
 
                 //写入是否第一帧
-                msg.get()->appendChar(0);
+                msg->appendChar(0);
 
                 //写入包索引
-                msg.get()->appendChar(++packet_index);
+                msg->appendChar(packet_index++);
 
                 //写入包总数
-                msg.get()->appendChar(packet_count);
+                msg->appendChar(packet_count);
 
                 //写入保留位
-                msg.get()->appendChar(0);
+                msg->appendChar(0);
 
                 //写入总数据长度
-                msg.get()->appendInteger(diffLen);
+                msg->appendInteger(diffLen);
 
                 //写入压缩数据长度
-                msg.get()->appendInteger(vec->length);
+                msg->appendInteger(vec->length);
 
                 //写入包数据长度
                 if(bytes_need_to_send > bytes_per_time)
                 {
                     //写入数据
-                    msg.get()->appendData(vec->data + bytes_already_sended, bytes_per_time);
+                    msg->appendData(vec->data + bytes_already_sended, bytes_per_time);
 
                     //调整相关值
                     bytes_need_to_send -= bytes_per_time;
@@ -444,7 +444,7 @@ void RDCClient::doScreenGenerate()
                 else
                 {
                     //写入数据
-                    msg.get()->appendData(vec->data + bytes_already_sended, bytes_need_to_send);
+                    msg->appendData(vec->data + bytes_already_sended, bytes_need_to_send);
 
                     //调整相关值
                     bytes_need_to_send = 0;
@@ -455,8 +455,7 @@ void RDCClient::doScreenGenerate()
                 this->m_pMsgQueueSemaphore->release();
             }
 
-            free(vec);
-            vec = nullptr;
+            delete vec;
         }
 
         //替换原来的图像数据

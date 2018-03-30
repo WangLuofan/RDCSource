@@ -29,7 +29,6 @@ SOURCES += \
     RDCClient.cpp \
     RDCConfiguration.cpp \
     RDCMessage.cpp \
-    RDCMessagePool.cpp \
     RDCPreferencesDialog.cpp \
     RDCTcpSocket.cpp \
     RDCHostInfo.cpp \
@@ -39,8 +38,7 @@ SOURCES += \
     RDCScreenWindow.cpp \
     RDCScreenMsgReceivedThread.cpp \
     RDCScreenDataSendThread.cpp \
-    RDCUdpSocketEventImpl.cpp \
-    RDCImageGettingThread.cpp
+    RDCUdpSocketEventImpl.cpp
 
 HEADERS += \
         RDCMainWindow.h \
@@ -49,7 +47,6 @@ HEADERS += \
     RDCConfiguration.h \
     RDCServiceCommand.h \
     RDCMessage.h \
-    RDCMessagePool.h \
     RDCPreferencesDialog.h \
     RDCTcpSocket.h \
     RDCTcpSocketEventHandler.h \
@@ -63,8 +60,7 @@ HEADERS += \
     RDCMessageQueue.h \
     RDCScreenDataSendThread.h \
     RDCUdpSocketEventImpl.h \
-    rdcudpsocket.h \
-    RDCImageGettingThread.h
+    rdcudpsocket.h
 
 
 FORMS += \

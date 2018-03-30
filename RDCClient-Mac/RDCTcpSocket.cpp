@@ -1,7 +1,6 @@
 #include "RDCHostInfo.h"
 #include "RDCMessage.h"
 #include "RDCTcpSocket.h"
-#include "RDCMessagePool.h"
 #include "RDCTcpSocketEventHandler.h"
 
 #include <strings.h>
@@ -220,13 +219,14 @@ void read_call_back(struct bufferevent* bev, void* ctx)
 
     evbuffer_remove(input, buffer, buflen);
 
-    std::shared_ptr<RDCMessage> msg = RDCMessagePool::pool()->newMessage();
-    msg.get()->appendData(buffer, buflen);
+    RDCMessage* msg = RDCMessage::newMessage();
+    msg->appendData(buffer, buflen);
 
     free(buffer);
 
     if(socket->getEventHandler() != nullptr)
-        socket->getEventHandler()->onMessageReceived(socket, msg.get());
+        socket->getEventHandler()->onMessageReceived(socket, msg);
+    delete msg;
 
     return ;
 }

@@ -1,17 +1,17 @@
 #include "RDCUdpSocket.h"
 #include "RDCHostInfo.h"
 #include "RDCMessage.h"
-#include "RDCMessagePool.h"
 #include "RDCUdpSocketEventHandler.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <QDebug>
 
-#define kMaxBufferSize 10240
+#define kMaxBufferSize 5125
 RDCUdpSocket::RDCUdpSocket()
 {
     this->m_iFileDescriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -86,8 +86,8 @@ void RDCUdpSocket::receiveMessage(void)
 
     if(recvLen > 0)
     {
-        MESSAGE_PTR msg = RDCMessagePool::pool()->newMessage();
-        msg.get()->appendData(buff, recvLen);
+        RDCMessage* msg = RDCMessage::newMessage();
+        msg->appendData(buff, recvLen);
 
         if(this->m_pSocketEventHandler != nullptr)
             this->m_pSocketEventHandler->onScreenDataReceived(this, msg);
