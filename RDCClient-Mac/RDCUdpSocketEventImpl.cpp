@@ -120,11 +120,11 @@ void RDCUdpSocketEventImpl::parseMessage(RDCMessage *msg)
                     for(int i = 0; i < this->m_pUnCompressedData->length; i += 4)
                     {
                         (*(this->m_pUnCompressedData->data + i)) ^=
-                                (*(this->m_pCompressedData + (idx++)));
+                                (*(vec->data + (idx++)));
                         (*(this->m_pUnCompressedData->data + i + 1)) ^=
-                                (*(this->m_pCompressedData + (idx++)));
+                                (*(vec->data + (idx++)));
                         (*(this->m_pUnCompressedData->data + i + 2)) ^=
-                                (*(this->m_pCompressedData + (idx++)));
+                                (*(vec->data + (idx++)));
                     }
                 }
             }

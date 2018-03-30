@@ -186,7 +186,7 @@ void RDCMainWindow::onClientStartScreenDataTimer(void)
 
         QObject::connect(this->m_pScreenTimer, SIGNAL(timeout()),
                          this->m_pClient, SLOT(doScreenGenerate()), Qt::DirectConnection);
-        this->m_pScreenTimer->start(500);
+        this->m_pScreenTimer->start(200);
     }
     return ;
 }

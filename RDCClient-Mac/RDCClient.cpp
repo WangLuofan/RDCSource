@@ -391,9 +391,13 @@ void RDCClient::doScreenGenerate()
         int index = 0;
         for(int i = 0; i < snapShot.sizeInBytes(); i += 4)
         {
-            *(diff + index++) = (*(ptr + i)) ^ (*(this->m_pSendBuffer + i));
-            *(diff + index++) = (*(ptr + i + 1)) ^ (*(this->m_pSendBuffer + i + 1));
-            *(diff + index++) = (*(ptr + i + 2)) ^ (*(this->m_pSendBuffer + i + 2));
+            unsigned char R = (*(ptr + i)) ^ (*(this->m_pSendBuffer + i));
+            unsigned char G = (*(ptr + i + 1)) ^ (*(this->m_pSendBuffer + i + 1));
+            unsigned char B = (*(ptr + i + 2)) ^ (*(this->m_pSendBuffer + i + 2));
+
+            *(diff + (index++)) = R;
+            *(diff + (index++)) = G;
+            *(diff + (index++)) = B;
         }
 
         struct ioVec* vec = RDCUtils::compress(diff, diffLen);

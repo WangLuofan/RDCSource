@@ -25,7 +25,7 @@ void RDCScreenDataSendThread::run(void)
                 this->m_pSocket->sendMessage(msg.get());
             }
         }
-        QThread::msleep(10);
+        QThread::usleep(40);
     }
     return ;
 }
