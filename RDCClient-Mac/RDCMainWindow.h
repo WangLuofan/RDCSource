@@ -29,7 +29,6 @@ private slots:
     void onClientShowMessage(int, QString);
     void onClientVerifyPasswordSlots(QString);
     void onClientConnectionReadySlots(QString);
-    void onClientStartScreenDataTimer(void);
     void on_doConnectionButton_clicked(void);
     void on_doDisconnectionButton_clicked(void);
     void on_otherTokenLineEdit_textChanged(const QString &);

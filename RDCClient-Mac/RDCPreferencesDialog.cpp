@@ -21,8 +21,10 @@ void RDCPreferencesDialog::loadDefaultConfiguration(void)
                                     ->valueForKey("ServerAddr").toString());
     ui->serverPortLineEdit->setText(RDCConfiguration::standardConfiguration()
                                     ->valueForKey("ServerPort").toString());
-    ui->localPortLineEdit->setText(RDCConfiguration::standardConfiguration()
-                                   ->valueForKey("LocalPort").toString());
+    ui->screenPortLineEdit->setText(RDCConfiguration::standardConfiguration()
+                                   ->valueForKey("ScreenPort").toString());
+    ui->commandPortLineEdit->setText(RDCConfiguration::standardConfiguration()
+                                     ->valueForKey("CommandPort").toString());
     ui->bgDeleteCheckBox->setChecked(RDCConfiguration::standardConfiguration()
                                      ->valueForKey("bgDelete").toBool());
     ui->verifyCheckBox->setChecked(RDCConfiguration::standardConfiguration()
@@ -45,7 +47,9 @@ void RDCPreferencesDialog::on_savePushButton_clicked()
     RDCConfiguration::standardConfiguration()->
             setValueForKey(QVariant(ui->serverPortLineEdit->text()), "ServerPort");
     RDCConfiguration::standardConfiguration()->
-            setValueForKey(QVariant(ui->localPortLineEdit->text()), "LocalPort");
+            setValueForKey(QVariant(ui->screenPortLineEdit->text()), "ScreenPort");
+    RDCConfiguration::standardConfiguration()->
+            setValueForKey(QVariant(ui->commandPortLineEdit->text()), "CommandPort");
     RDCConfiguration::standardConfiguration()->
             setValueForKey(QVariant(ui->bgDeleteCheckBox->checkState() == Qt::Checked), "bgDelete");
     RDCConfiguration::standardConfiguration()->

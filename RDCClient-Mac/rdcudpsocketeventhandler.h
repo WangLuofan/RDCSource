@@ -11,7 +11,6 @@ public:
 
 public:
     virtual void onScreenDataReceived(RDCUdpSocket*, RDCMessage*) = 0;
-    virtual void onScreenCommandReceived(RDCUdpSocket*, RDCMessage*) = 0;
 };
 
 #endif // RDCUDPSOCKETEVENTHANDLER_H

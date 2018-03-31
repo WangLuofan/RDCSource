@@ -30,7 +30,8 @@ void RDCConfiguration::initDefaultValues(void)
         //初始化
         this->m_pSettings->setValue(QString("ServerAddr"), QString("127.0.0.1"));
         this->m_pSettings->setValue(QString("ServerPort"), QString("9999"));
-        this->m_pSettings->setValue(QString("LocalPort"), QString("15555"));
+        this->m_pSettings->setValue(QString("ScreenPort"), QString("15555"));
+        this->m_pSettings->setValue(QString("CommandPort"), QString("15554"));
         this->m_pSettings->setValue(QString("bgDelete"), QVariant(false));
         this->m_pSettings->setValue(QString("verifyPassword"), QVariant(true));
         this->m_pSettings->setValue(QString("autoAgreeConn"), QVariant(false));

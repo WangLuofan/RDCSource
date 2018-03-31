@@ -41,14 +41,13 @@ private:
     virtual void onTimeOutEventOccured(RDCTcpSocket*);
     virtual void onMessageReceived(RDCTcpSocket*, RDCMessage *);
 
-    bool buildUdpConnection(bool = true, const char* = nullptr, unsigned short = 0);
+    bool buildUdpConnection(RDCUdpSocket*&, unsigned short = 0, bool = true, const char* = nullptr);
 
 signals:
     void client_info_update_signal(QString, QString);
     void client_show_message_signal(int, QString);
     void client_verify_password_signal(QString);
     void client_connection_ready_signal(QString);
-    void client_screen_data_send_begin_signal(void);
     void client_should_update_screen_image(QImage);
 
 private slots:
@@ -65,12 +64,12 @@ public slots:
 private:
     RDCTcpSocket* m_pClientSocket;
     RDCUdpSocket* m_pScreenDataSocket;
+    RDCUdpSocket* m_pScreenCommandSocket;
     RDCMessageQueue<RDCMessage*>* m_pMsgQueue;
     RDCMessageQueue<QImage*>* m_pImageQueue;
     RDCScreenMsgReceivedThread* m_pScreenMsgRecvThread;
     RDCScreenDataSendThread* m_pScreenDataSendThread;
     unsigned char* m_pSendBuffer;
-    bool m_bIsGeneratingScreenShot;
     QSemaphore* m_pMsgQueueSemaphore;
     QSemaphore* m_pImageQueueSemaphore;
     RDCUdpSocketEventImpl* m_pUdpSocketEventImpl;

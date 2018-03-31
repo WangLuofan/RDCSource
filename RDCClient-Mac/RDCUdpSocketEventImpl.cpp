@@ -10,22 +10,20 @@
 #include <QTime>
 #include <QSemaphore>
 
+#define SAFE_DELETE(ptr) if(ptr != nullptr) {delete ptr; ptr = nullptr;}
+
 //收到屏幕指令
 RDCUdpSocketEventImpl::RDCUdpSocketEventImpl(QObject* parent) : QThread(parent),
     m_pMessageQueue(new RDCMessageQueue<RDCMessage*>()),
     m_bShouldStopParse(false), m_pCompressedData(nullptr),
-    m_pUnCompressedData(nullptr), m_pPacketsParsed(0), m_pSemaphore(new QSemaphore(1))
+    m_pUnCompressedData(nullptr), m_pSemaphore(new QSemaphore(1))
 {
 }
 
 RDCUdpSocketEventImpl::~RDCUdpSocketEventImpl()
 {
-    free(this->m_pCompressedData);
-}
-
-void RDCUdpSocketEventImpl::onScreenCommandReceived(RDCUdpSocket *, RDCMessage *)
-{
-    return ;
+    SAFE_DELETE(this->m_pCompressedData);
+    SAFE_DELETE(this->m_pUnCompressedData);
 }
 
 //收到数据指令,放入队列等待解析
@@ -82,6 +80,14 @@ void RDCUdpSocketEventImpl::parseMessage(RDCMessage *msg)
     {
         //请求桌面分辨率
         this->m_pResolution = QSize(msg->nextShort(), msg->nextShort());
+
+        //请求屏幕第一帧
+        RDCMessage* msg = RDCMessage::newMessage(ServiceCommandScreenFirstFrame);
+        this->m_pSendSocket->sendMessage(msg);
+    }else if(cmd == ServiceCommandScreenFirstFrame || cmd == ServiceCommandScreenNextFrame)
+    {
+        //主控端请求屏幕数据, 通知Client产生图像
+        emit screen_generate_frame_signal();
     }
     else if(cmd == ServiceCommandScreenData)
     {
@@ -96,60 +102,74 @@ void RDCUdpSocketEventImpl::parseMessage(RDCMessage *msg)
         //如果未开辟空间，则先申请内存
         if(this->m_pCompressedData == nullptr)
         {
-            this->m_pCompressedData = (unsigned char*)malloc(sizeof(unsigned char) * com_len);
-            memset(this->m_pCompressedData, 0, sizeof(unsigned char) * com_len);
-        }
+            this->m_pCompressedData = new struct ioVec();
 
-        ++this->m_pPacketsParsed;
+            this->m_pCompressedData->io_base = (unsigned char*)malloc(sizeof(unsigned char) * com_len);
+            this->m_pCompressedData->io_compress_length = com_len;
+            this->m_pCompressedData->io_origin_length = ori_len;
+
+            memset(this->m_pCompressedData->io_base, 0, sizeof(unsigned char) * com_len);
+        }
 
         //复制图像数据到对应的位置
         const unsigned char* img_data = msg->data() + msg->current();
-        memcpy(this->m_pCompressedData +
-               (index - 1) * img_data_length, img_data, msg->size() - msg->current());
-
-        //解析到一个完整的数据包
-        if(this->m_pPacketsParsed >= total)
+        memcpy(this->m_pCompressedData->io_base +
+               index * img_data_length, img_data, msg->size() - msg->current());
+    }
+    else if(cmd == ServiceCommandOneFrameEndNotification)
+    {
+        //一帧图像已经传输结束
+        struct ioVec* vec = RDCUtils::uncompress(this->m_pCompressedData->io_base,
+                                                 this->m_pCompressedData->io_compress_length,
+                                                 this->m_pCompressedData->io_origin_length);
+        if(vec != nullptr)
         {
-            //解压缩数据
-            struct ioVec* vec = RDCUtils::uncompress(this->m_pCompressedData, com_len, ori_len);
-            if(vec != nullptr)
+            //解压到数据之后，建立图片
+            if(this->m_pUnCompressedData == nullptr)
+                this->m_pUnCompressedData = vec;
+            else
             {
-                //解压到数据之后，建立图片
-                if(bFirst)
-                    this->m_pUnCompressedData = vec;
-                else
+                //非第一帧
+                int idx = 0;
+                for(int i = 0; i < this->m_pUnCompressedData->io_compress_length; i += 4)
                 {
-                    //非第一帧
-                    int idx = 0;
-                    for(int i = 0; i < this->m_pUnCompressedData->length; i += 4)
-                    {
-                        (*(this->m_pUnCompressedData->data + i)) ^=
-                                (*(vec->data + (idx++)));
-                        (*(this->m_pUnCompressedData->data + i + 1)) ^=
-                                (*(vec->data + (idx++)));
-                        (*(this->m_pUnCompressedData->data + i + 2)) ^=
-                                (*(vec->data + (idx++)));
-                    }
-                    delete vec;
+                    (*(this->m_pUnCompressedData->io_base + i)) ^=
+                            (*(vec->io_base + (idx++)));
+                    (*(this->m_pUnCompressedData->io_base + i + 1)) ^=
+                            (*(vec->io_base + (idx++)));
+                    (*(this->m_pUnCompressedData->io_base + i + 2)) ^=
+                            (*(vec->io_base + (idx++)));
                 }
-
-                QImage image = QImage(this->m_pUnCompressedData->data,
-                                           this->m_pResolution.width(), this->m_pResolution.height(),
-                                           QImage::Format_ARGB32_Premultiplied);
-                if(image.isNull() == false)
-                {
-                    //通知窗口显示图片
-                    emit screen_image_update_signal(image);
-                }
+                delete vec;
             }
 
-            this->m_pPacketsParsed = 0;
-
-            free(this->m_pCompressedData);
-            this->m_pCompressedData = nullptr;
+            QImage image = QImage(this->m_pUnCompressedData->io_base,
+                                  this->m_pResolution.width(), this->m_pResolution.height(),
+                                  QImage::Format_ARGB32_Premultiplied);
+            if(image.isNull() == false)
+            {
+                //通知窗口显示图片
+                emit screen_image_update_signal(image);
+            }
         }
+
+        SAFE_DELETE(this->m_pCompressedData);
+
+        RDCMessage* nxtMsg = RDCMessage::newMessage(ServiceCommandScreenNextFrame);
+        this->m_pSendSocket->sendMessage(nxtMsg);
     }
 
     delete msg;
+    return ;
+}
+
+RDCUdpSocket *RDCUdpSocketEventImpl::pSendSocket(void) const
+{
+    return this->m_pSendSocket;
+}
+
+void RDCUdpSocketEventImpl::setSendSocket(RDCUdpSocket *pSendSocket)
+{
+    this->m_pSendSocket = pSendSocket;
     return ;
 }

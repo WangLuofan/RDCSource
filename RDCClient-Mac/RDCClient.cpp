@@ -13,15 +13,17 @@
 
 RDCClient::RDCClient(QObject *parent) : QObject(parent), m_pClientSocket(nullptr),
     m_pScreenDataSocket(nullptr), m_pScreenMsgRecvThread(nullptr),
-    m_pSendBuffer(nullptr), m_bIsGeneratingScreenShot(false), m_pMsgQueue(new RDCMessageQueue<RDCMessage*>()),
+    m_pSendBuffer(nullptr), m_pMsgQueue(new RDCMessageQueue<RDCMessage*>()),
     m_pUdpSocketEventImpl(new RDCUdpSocketEventImpl(this)), m_pScreenDataSendThread(nullptr),
-    m_pImageQueue(new RDCMessageQueue<QImage*>())
+    m_pImageQueue(new RDCMessageQueue<QImage*>()), m_pScreenCommandSocket(nullptr)
 {
     this->m_pMsgQueueSemaphore = new QSemaphore(1);
     this->m_pImageQueueSemaphore = new QSemaphore(1);
 
     QObject::connect(this->m_pUdpSocketEventImpl, SIGNAL(screen_image_update_signal(QImage)),
                      this, SLOT(doUpdateScreenImageSlots(QImage)), Qt::DirectConnection);
+    QObject::connect(this->m_pUdpSocketEventImpl, SIGNAL(screen_generate_frame_signal()),
+                     this, SLOT(doScreenGenerate()), Qt::DirectConnection);
 
     //启动数据解析
     this->m_pUdpSocketEventImpl->start();
@@ -145,8 +147,24 @@ void RDCClient::onMessageReceived(RDCTcpSocket* socket, RDCMessage* message)
             break;
         case ServiceCommandVerifyComplete:
         {
+            //上传端口号
+            unsigned short port = RDCConfiguration::standardConfiguration()
+                    ->valueForKey("CommandPort").toInt(nullptr);
+            if(this->buildUdpConnection(this->m_pScreenCommandSocket, port))
+            {
+                //建立屏幕指令接收线路,启动数据接收线程
+                if(this->m_pScreenMsgRecvThread == nullptr)
+                {
+                    //启动数据接收线程
+                    this->m_pScreenMsgRecvThread =
+                            new RDCScreenMsgReceivedThread(this, this->m_pScreenCommandSocket);
+                    this->m_pScreenMsgRecvThread->start();
+                }
+            }
+
             //主控端密码验证成功，发起Udp连接请求
             RDCMessage* rmsg = RDCMessage::newMessage(ServiceCommandConnectionRequest);
+            rmsg->appendShort(port);
             socket->sendMessage(rmsg);
             delete rmsg;
         }
@@ -158,7 +176,7 @@ void RDCClient::onMessageReceived(RDCTcpSocket* socket, RDCMessage* message)
             int ipLen = message->nextChar();
             QString ipAddr = message->nextString(ipLen);
 
-            if(this->buildUdpConnection(false, ipAddr.toLatin1().constData(), port))
+            if(this->buildUdpConnection(this->m_pScreenDataSocket, port, false, ipAddr.toLatin1().constData()))
             {
                 //成功连接到主控端, 启动数据发送线程
                 if(this->m_pScreenDataSendThread == nullptr)
@@ -175,9 +193,6 @@ void RDCClient::onMessageReceived(RDCTcpSocket* socket, RDCMessage* message)
                 rmsg->appendShort(reso.height());
                 this->m_pScreenDataSocket->sendMessage(rmsg);
                 delete rmsg;
-
-                //启动定时器,发送屏幕数据
-                emit client_screen_data_send_begin_signal();
             }
         }
             break;
@@ -189,31 +204,37 @@ void RDCClient::onMessageReceived(RDCTcpSocket* socket, RDCMessage* message)
             break;
         case ServiceCommandConnectionRequest:
         {
+            unsigned short remotePort = message->nextShort();
+
             int ipLen = message->nextChar();
             QString ipAddr = message->nextString(ipLen);
 
-            //被控端发起连接请求， 建立Udp连接
-            if(this->buildUdpConnection())
+            if(this->buildUdpConnection(this->m_pScreenCommandSocket, remotePort,
+                                        false, ipAddr.toLatin1().constData()))
             {
-                if(this->m_pScreenMsgRecvThread == nullptr)
-                {
-                    //启动数据接收线程
-                    this->m_pScreenMsgRecvThread =
-                            new RDCScreenMsgReceivedThread(this, this->m_pScreenDataSocket);
-                    this->m_pScreenMsgRecvThread->start();
-                }
-
-                //发送通知，建立窗口
-                emit client_connection_ready_signal(ipAddr);
-
-                //上传端口号
+                //连接到对方的命令Socket
+                //被控端发起连接请求， 建立Udp连接
                 unsigned short port = RDCConfiguration::standardConfiguration()
-                        ->valueForKey("LocalPort").toInt(nullptr);
-                RDCMessage* rmsg = RDCMessage::newMessage(ServiceCommandConnectionReady);
-                rmsg->appendShort(port);
-                socket->sendMessage(rmsg);
+                        ->valueForKey("ScreenPort").toInt(nullptr);
+                if(this->buildUdpConnection(this->m_pScreenDataSocket, port))
+                {
+                    if(this->m_pScreenMsgRecvThread == nullptr)
+                    {
+                        //启动数据接收线程
+                        this->m_pScreenMsgRecvThread =
+                                new RDCScreenMsgReceivedThread(this, this->m_pScreenDataSocket);
+                        this->m_pScreenMsgRecvThread->start();
+                    }
 
-                delete rmsg;
+                    //发送通知，建立窗口
+                    emit client_connection_ready_signal(ipAddr);
+
+                    RDCMessage* rmsg = RDCMessage::newMessage(ServiceCommandConnectionReady);
+                    rmsg->appendShort(port);
+                    socket->sendMessage(rmsg);
+
+                    delete rmsg;
+                }
             }
         }
             break;
@@ -224,18 +245,21 @@ void RDCClient::onMessageReceived(RDCTcpSocket* socket, RDCMessage* message)
     return ;
 }
 
-bool RDCClient::buildUdpConnection(bool bMaster, const char* ipAddr, unsigned short port)
+bool RDCClient::buildUdpConnection(RDCUdpSocket*& socket, unsigned short port, bool bMaster,
+                                   const char* ipAddr)
 {
 
-    if(this->m_pScreenDataSocket == nullptr)
+    if(socket == nullptr)
     {
-        this->m_pScreenDataSocket = new RDCUdpSocket();
-        this->m_pScreenDataSocket->setSocketEventHandler(
-                    (RDCUdpSocketEventHandler*)this->m_pUdpSocketEventImpl);
+        socket = new RDCUdpSocket();
 
-        return bMaster ? this->m_pScreenDataSocket->bindAtPort(RDCConfiguration::standardConfiguration()
-                                                               ->valueForKey("LocalPort").toInt(nullptr))
-                       : this->m_pScreenDataSocket->connectToHost(ipAddr, port);
+        if(bMaster)
+            socket->setSocketEventHandler(
+                        (RDCUdpSocketEventHandler*)this->m_pUdpSocketEventImpl);
+        else
+            this->m_pUdpSocketEventImpl->setSendSocket(socket);
+        return bMaster ? socket->bindAtPort(port)
+                       : socket->connectToHost(ipAddr, port);
     }
 
     return false;
@@ -308,12 +332,6 @@ void RDCClient::doPasswordVerifyResultSlots(bool bSuccess)
 // header_size = 32 + 16 + 16 + 32 + 32 = 16 bytes
 void RDCClient::doScreenGenerate(void)
 {
-    if(this->m_bIsGeneratingScreenShot == true)
-        return ;
-
-    //当前正在执行操作
-    this->m_bIsGeneratingScreenShot = true;
-
     QImage snapShot = RDCUtils::grabScreen();
     if(this->m_pSendBuffer == nullptr)
     {
@@ -327,7 +345,7 @@ void RDCClient::doScreenGenerate(void)
         {
             //分包发送
             int bytes_per_time = 5104, bytes_need_to_send = vec->length, bytes_already_sended = 0,
-                    packet_count = (int)(vec->length / bytes_per_time) + 1, packet_index = 1;
+                    packet_count = (int)(vec->length / bytes_per_time) + 1, packet_index = 0;
             while(bytes_need_to_send > 0)
             {
                 //写入命令字
@@ -407,7 +425,7 @@ void RDCClient::doScreenGenerate(void)
         {
             //分包发送
             int bytes_per_time = 5104, bytes_need_to_send = vec->length, bytes_already_sended = 0,
-                    packet_count = (int)(vec->length / bytes_per_time) + 1, packet_index = 1;
+                    packet_count = (int)(vec->length / bytes_per_time) + 1, packet_index = 0;
             while(bytes_need_to_send > 0)
             {
                 //写入命令字
@@ -462,8 +480,10 @@ void RDCClient::doScreenGenerate(void)
         memcpy(this->m_pSendBuffer, snapShot.bits(), sizeof(unsigned char) * snapShot.sizeInBytes());
     }
 
-    //操作执行结束
-    this->m_bIsGeneratingScreenShot = false;
+    //写入结束符，标记传输结束
+    RDCMessage* endMsg = RDCMessage::newMessage(ServiceCommandOneFrameEndNotification);
+    this->m_pMsgQueue->push_back(endMsg);
+    this->m_pMsgQueueSemaphore->release();
     return ;
 }
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>540</width>
-    <height>221</height>
+    <width>517</width>
+    <height>251</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -107,6 +107,13 @@
       <string>本地端口设置</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="screenPortLineEdit">
+        <property name="placeholderText">
+         <string>图像端口号</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_3">
         <property name="minimumSize">
@@ -116,17 +123,33 @@
          </size>
         </property>
         <property name="text">
-         <string>本地端口:</string>
+         <string>图像端口:</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="localPortLineEdit">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="minimumSize">
+         <size>
+          <width>95</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>命令端口:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="commandPortLineEdit">
         <property name="placeholderText">
-         <string>本地端口</string>
+         <string>命令端口号</string>
         </property>
        </widget>
       </item>

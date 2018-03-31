@@ -15,6 +15,7 @@ typedef enum
     ServiceCommandVerifyComplete = 'SCVC',           //主控端验证通过
     ServiceCommandVerifyFailed = 'SCVF',             //主控端验证失败
     ServiceCommandConnectionRequest = 'SCRY',        //被控端发起连接请求
+    ServiceCommandOneFrameEndNotification = 'OFEN',  //一帧图像传输结束
     ServiceCommandConnectionReady = 'SCDY',          //主控端已建立连接，等待被控端连接
     ServiceCommandTellResolution = 'TREQ',           //请求桌面分辨率
     ServiceCommandScreenFirstFrame = 'SFRM',         //主控端请求屏幕第一帧

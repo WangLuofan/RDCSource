@@ -7,10 +7,12 @@
 
 typedef struct ioVec
 {
-    unsigned char* data;
-    int length;
+    unsigned char* io_base;
+    int io_compress_length;
+    int io_origin_length;
 
-    ~ioVec() {free(data); data = nullptr;}
+    ioVec() : io_base(nullptr), io_compress_length(0), io_origin_length(0) {}
+    ~ioVec() {free(io_base); io_base = nullptr;}
 
 }ioVec;
 

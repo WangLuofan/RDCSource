@@ -93,8 +93,6 @@ void RDCMainWindow::startConnection(void)
     QObject::connect(this->m_pClient, SIGNAL(client_connection_ready_signal(QString)),
                      this, SLOT(onClientConnectionReadySlots(QString)));
     QObject::connect(this->m_pClientThread, SIGNAL(started()), this->m_pClient, SLOT(Start()));
-    QObject::connect(this->m_pClient, SIGNAL(client_screen_data_send_begin_signal()),
-                     this, SLOT(onClientStartScreenDataTimer()));
     QObject::connect(this->m_pClient, SIGNAL(client_should_update_screen_image(QImage)),
                      this, SLOT(onClientShouldUpdateScreenImage(QImage)));
 
@@ -171,20 +169,6 @@ void RDCMainWindow::onClientConnectionReadySlots(QString title)
         //显示当前图像窗口
         this->m_pScreenWindow->setWindowTitle(QString("%1 [已连接]").arg(title));
         this->m_pScreenWindow->showNormal();
-    }
-    return ;
-}
-
-void RDCMainWindow::onClientStartScreenDataTimer(void)
-{
-    //启动定时器, 准备发送屏幕数据
-    if(this->m_pScreenTimer == nullptr)
-    {
-        this->m_pScreenTimer = new QTimer(this);
-
-        QObject::connect(this->m_pScreenTimer, SIGNAL(timeout()),
-                         this->m_pClient, SLOT(doScreenGenerate()), Qt::DirectConnection);
-        this->m_pScreenTimer->start(200);
     }
     return ;
 }
